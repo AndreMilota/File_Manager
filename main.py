@@ -1,9 +1,26 @@
 import wx
 
 class MyFrame(wx.Frame):
-    def __init__(self):
-        super().__init__(parent=None, title='Simple wxPython App', size=(400, 200))
-        
+     def __init__(self):
+        super().__init__(parent=None, title='Simple wxPython App')
+
+        # Get display where the window is opening
+        display_index = wx.Display.GetFromWindow(self)
+        if display_index == -1:
+            display_index = 0  # fallback to primary monitor
+
+        display = wx.Display(display_index)
+        geometry = display.GetGeometry()
+
+        width = 600
+        height = int(geometry.GetHeight() * 0.85)  # leave space for taskbar etc.
+
+        # Resize the frame after creating it
+        self.SetSize(width, height)
+        self.Centre()
+
+        # Background color
+        self.SetBackgroundColour(wx.Colour(255, 255, 255))
         panel = wx.Panel(self)
 
         # Layout manager
