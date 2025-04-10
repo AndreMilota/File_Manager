@@ -23,29 +23,26 @@ class FileDatabase:
             hidden INTEGER,
             system INTEGER,
             archive INTEGER"""
-        
-        # Multimedia attributes (covering video and audio)
+                
+        # multimedia attributes
         multimedia_attributes = """
             duration REAL,
             bitrate INTEGER,
             codec TEXT,
+            framerate REAL"""
+                
+        # image attributes
+        image_attributes = """
+            image_format TEXT,
             resolution_width INTEGER,
-            resolution_height INTEGER,
-            framerate REAL,
+            resolution_height INTEGER"""
+                
+        # audio attributes
+        audio_attributes = """
             sample_rate INTEGER,
             channels INTEGER"""
-        
-        # Image attributes (specific to images)
-        image_attributes = """
-            image_format TEXT"""
-        
-        # Audio attributes (specific to audio, could overlap with multimedia)
-        audio_attributes = """
-            bitrate INTEGER,
-            duration REAL,
-            codec TEXT"""
-        
-        # Agent attributes (track agent-specific interactions)
+                
+        # agent-specific attributes
         agent_attributes = """
             first_seen TEXT,
             last_seen TEXT,
@@ -57,10 +54,11 @@ class FileDatabase:
             pending_movement TEXT,
             new_location TEXT,
             source_location TEXT,
-            user_comment TEXT,
-            agent_notes TEXT,
+            agent_status INTEGER,
             hash TEXT,
-            agent_status INTEGER"""
+            user_comment TEXT,
+            agent_notes TEXT"""
+
         
         # Assemble the final schema query string
         schema_query = f"""
@@ -105,15 +103,82 @@ class FileDatabase:
             print(f"Row inserted: {row}")
         else:
             print("No rows found in the table.")
+
+
+    # Given a string containing a file name with its path repended to it
+    # return A dictionary containingall of the timestamp information about 
+    # the file includingwhen it was created last modified and last referenced
+    def get_file_timestamps(self, file_path):
+        try:
+            # Get the file timestamps using os.path.getctime, os.path.getmtime, and os.path.getatime
+            import os
+            # read the time stamps as date time objects
+            data_created = os.path.getctime(file_path)
+            data_modified = os.path.getmtime(file_path)
+            data_accessed = os.path.getatime(file_path)
+
+            # Convert timestamps to a more readable format (optional)
+            from datetime import datetime
+            data_created = datetime.fromtimestamp(data_created).strftime('%Y-%m-%d %H:%M:%S')
+            data_modified = datetime.fromtimestamp(data_modified).strftime('%Y-%m-%d %H:%M:%S')
+            data_accessed = datetime.fromtimestamp(data_accessed).strftime('%Y-%m-%d %H:%M:%S')
+
+            timestamps = {
+                'data_created': data_created,
+                'data_modified': data_modified,
+                'data_accessed': data_accessed
+            }
+           
+            return timestamps
+        except Exception as e:
+            print(f"Error retrieving timestamps for {file_path}: {e}")
+            return None
+
+    # Given a string containing a file name with its path repended to it
+    # return A dictionary containing all of the file attributes including its size and read only status
+    # As well as all of the other parameters that the Windows operating systemmay havestored awayfor that file
+    def get_file_attributes(self, file_path):
+        try:
+            # Get the file attributes using os.stat
+            import os
+            stat_info = os.stat(file_path)
+            attributes = {
+                'size': stat_info.st_size,
+                'readonly': not bool(stat_info.st_mode & 0o222),  # Check if the file is writable
+                'hidden': file_path.startswith('.'),  # Check if the file is hidden (Unix-like systems)
+                'system': False,  # Placeholder for system attribute (not directly available in Python)
+                'archive': False  # Placeholder for archive attribute (not directly available in Python)
+            }
+            return attributes
+        except Exception as e:
+            print(f"Error retrieving attributes for {file_path}: {e}")
+            return None
+
         
     def close(self):
         # Close the connection when done
         self.conn.close()
 
 # Test the FileDatabase class
+# if __name__ == "__main__":
+#     db = FileDatabase('test_files.db')  # Create a test database
+#     db.create_file_schema()  # Create the schema
+#     db.test_database()  # Perform the basic diagnostic
+#     db.close()  # Close the database connection
+
+
+# test to see if the file attributes and timestamps are being returned correctly
 if __name__ == "__main__":
     db = FileDatabase('test_files.db')  # Create a test database
     db.create_file_schema()  # Create the schema
     db.test_database()  # Perform the basic diagnostic
-    db.close()  # Close the database connection
 
+    # Test file attributes and timestamps
+    file_path = 'test_files.db'  # Replace with an actual file path for testing
+    timestamps = db.get_file_timestamps(file_path)
+    attributes = db.get_file_attributes(file_path)
+
+    print(f"Timestamps: {timestamps}")
+    print(f"Attributes: {attributes}")
+
+    db.close()  # Close the database connection
