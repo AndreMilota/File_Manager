@@ -71,7 +71,7 @@ def load_file_data(file_path, db_cursor):
 
 def load_directory_data(directory_path, db_cursor):
     """ Get all files in the directory and its subdirectories """
-    file_paths = Dir_Reader.get_all_files(directory_path)
+    file_paths = Dir_Reader.get_all_files_in_directory(directory_path)
 
     # Load each file's data into the database
     for file_path in file_paths:
