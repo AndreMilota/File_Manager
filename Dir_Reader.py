@@ -127,16 +127,31 @@ def get_media_metadata(file_path):
         print(f"Error extracting metadata for {file_path}: {e}")
         return None
 
+def get_all_file_data(file_path):
+    # Extract file attributes
+
+    # break the file path file name and extension into out of the file path
+    # this is done to make it easier to extract the file attributes
+    path = file_path.replace('\\', '/')
+    extention = path.split('/')[-1].split('.')[-1]
+    file_name = path.split('/')[-1].split('.')[0]   
+    path = '/'.join(path.split('/')[:-1])
+    # put them into a dictionary to make it easier to extract the file attributes
+    idenitifier = {
+        'name': file_name,
+        'extension': extention,
+        'full_path': path
+    }
+
+    file_attributes = get_file_attributes(file_path)
+    multimedia_attributes = get_media_metadata(file_path)
+    all_attributes = {**idenitifier, **file_attributes, **multimedia_attributes }
+
+    return all_attributes
+
 
 if __name__ == "__main__":
-    file_path = 'test_files.db'  # Replace with an actual file path for testing
-    timestamps = get_file_timestamps(file_path)
-    attributes = get_file_attributes(file_path)
-    size_on_disk = get_size_on_disk(file_path)
-
-    print("Timestamps:", timestamps)
-    print("Attributes:", attributes)
-    print("Size on Disk:", size_on_disk)
-
-    meta = get_media_metadata("C:/Users/owner/Downloads/Stripsearch - Hey Kid (1982) [ ezmp3.cc ].mp3")
-    print(meta)
+    # test get_all_file_data
+    file_path = r'C:/Users/owner/Downloads/Stripsearch - Hey Kid (1982) [ ezmp3.cc ].mp3'  # Replace with your file path
+    file_data = get_all_file_data(file_path)
+    print(file_data)
