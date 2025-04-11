@@ -1,6 +1,6 @@
 # this reads the directory infomation including file paramters 
 import ctypes
-from ctypes import wintypes
+from ctypes import wintypes  
 import subprocess
 import json
 import os
@@ -81,48 +81,49 @@ def get_media_metadata(file_path):
             ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            universal_newlines=True
+            encoding='utf-8'  # Explicitly set encoding to avoid UnicodeDecodeError
         )
-        
+
+        # Check for ffprobe failure
+        if result.returncode != 0:
+            print(f"ffprobe failed for {file_path}: {result.stderr}")
+            return None
+
         # Parse the JSON output
         metadata = json.loads(result.stdout)
-        streams = metadata.get('streams', [])
-        format_info = metadata.get('format', {})
 
-        # Initialize return values
-        media_data = {
-            'duration': None,
-            'bitrate': None,
-            'codec': None,
-            'resolution_width': None,
-            'resolution_height': None,
-            'framerate': None,
-            'sample_rate': None,
-            'channels': None
+        # Initialize variables
+        duration = None
+        width = None
+        height = None
+        codec_name = None
+
+        # Extract duration and format info
+        if 'format' in metadata and 'duration' in metadata['format']:
+            try:
+                duration = float(metadata['format']['duration'])
+            except ValueError:
+                duration = None
+
+        # Find the first video stream
+        if 'streams' in metadata:
+            for stream in metadata['streams']:
+                if stream.get('codec_type') == 'video':
+                    width = stream.get('width')
+                    height = stream.get('height')
+                    codec_name = stream.get('codec_name')
+                    break
+
+        return {
+            'duration': duration,
+            'width': width,
+            'height': height,
+            'codec': codec_name
         }
 
-        # General format-level info
-        if 'duration' in format_info:
-            media_data['duration'] = float(format_info['duration'])
-        if 'bit_rate' in format_info:
-            media_data['bitrate'] = int(format_info['bit_rate'])
-
-        # Pick the first video or audio stream for details
-        for stream in streams:
-            if stream.get('codec_type') == 'video':
-                media_data['codec'] = stream.get('codec_name')
-                media_data['resolution_width'] = stream.get('width')
-                media_data['resolution_height'] = stream.get('height')
-                if 'r_frame_rate' in stream and stream['r_frame_rate'] != '0/0':
-                    num, denom = map(int, stream['r_frame_rate'].split('/'))
-                    if denom != 0:
-                        media_data['framerate'] = num / denom
-            elif stream.get('codec_type') == 'audio':
-                media_data['codec'] = stream.get('codec_name') or media_data['codec']
-                media_data['sample_rate'] = int(stream.get('sample_rate', 0))
-                media_data['channels'] = int(stream.get('channels', 0))
-
-        return media_data
+    except Exception as e:
+        print(f"Error reading media metadata for {file_path}: {e}")
+        return None
 
     except Exception as e:
         print(f"Error extracting metadata for {file_path}: {e}")
@@ -138,15 +139,15 @@ def get_all_file_data(file_path):
     file_name = path.split('/')[-1].split('.')[0]   
     path = '/'.join(path.split('/')[:-1])
     # put them into a dictionary to make it easier to extract the file attributes
-    idenitifier = {
+    identifier  = {
         'name': file_name,
         'extension': extention,
         'full_path': path
     }
 
-    file_attributes = get_file_attributes(file_path)
-    multimedia_attributes = get_media_metadata(file_path)
-    all_attributes = {**idenitifier, **file_attributes, **multimedia_attributes }
+    file_attributes = get_file_attributes(file_path) or {}
+    multimedia_attributes = get_media_metadata(file_path) or {}
+    all_attributes = {**identifier, **file_attributes, **multimedia_attributes }
 
     return all_attributes
 
