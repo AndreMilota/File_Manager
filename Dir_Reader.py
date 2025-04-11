@@ -3,6 +3,7 @@ import ctypes
 from ctypes import wintypes
 import subprocess
 import json
+import os
 
  # Given a string containing a file name with its path repended to it
     # return A dictionary containingall of the timestamp information about 
@@ -149,9 +150,20 @@ def get_all_file_data(file_path):
 
     return all_attributes
 
+def get_subdirectories(root_dir):
+    subdirs = []
+    for dirpath, dirnames, _ in os.walk(root_dir, followlinks=False):
+        for dirname in dirnames:
+            full_path = os.path.join(dirpath, dirname)
+            subdirs.append(full_path)
+    return subdirs
 
 if __name__ == "__main__":
-    # test get_all_file_data
-    file_path = r'C:/Users/owner/Downloads/Stripsearch - Hey Kid (1982) [ ezmp3.cc ].mp3'  # Replace with your file path
-    file_data = get_all_file_data(file_path)
-    print(file_data)
+    # test get_subdirectories
+ 
+    root_dir = "C:/ffmpeg"
+    subdirs = get_subdirectories(root_dir)
+    print("Subdirectories:")
+    for subdir in subdirs:
+        print(subdir)
+    print("Total subdirectories:", len(subdirs))
