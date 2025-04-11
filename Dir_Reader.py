@@ -158,12 +158,21 @@ def get_subdirectories(root_dir):
             subdirs.append(full_path)
     return subdirs
 
+def get_all_files_in_directory(root_dir):
+    """ get all the full paths of the files in the directory tree """
+    all_files = []
+    for dirpath, _, filenames in os.walk(root_dir, followlinks=False):
+        for filename in filenames:
+            full_path = os.path.join(dirpath, filename)
+            all_files.append(full_path)
+    return all_files
+
 if __name__ == "__main__":
-    # test get_subdirectories
+    # test get_all_files_in_directory
  
     root_dir = "C:/ffmpeg"
-    subdirs = get_subdirectories(root_dir)
-    print("Subdirectories:")
+    subdirs = get_all_files_in_directory(root_dir)
+    print("files:")
     for subdir in subdirs:
         print(subdir)
-    print("Total subdirectories:", len(subdirs))
+    print("Total files:", len(subdirs))

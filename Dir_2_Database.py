@@ -68,8 +68,17 @@ def load_file_data(file_path, db_cursor):
     ))
 
     db_cursor.connection.commit()
-#
-# Example usage
+
+def load_directory_data(directory_path, db_cursor):
+    """ Get all files in the directory and its subdirectories """
+    file_paths = Dir_Reader.get_all_files(directory_path)
+
+    # Load each file's data into the database
+    for file_path in file_paths:
+        load_file_data(file_path, db_cursor)
+
+
+# test load directory data
 if __name__ == "__main__":
     # clear the database
     db = FileDatabase.FileDatabase('file_data.db')
@@ -81,17 +90,44 @@ if __name__ == "__main__":
     db.create_file_schema()
 
     cursor = db.conn.cursor()
-    # Load file data into the database
-    load_file_data('C:/Users/owner/VS code projects/File_Manager/FileDatabase.py', cursor)
-    load_file_data('C:/Users/owner/Downloads/Stripsearch - Hey Kid (1982) [ ezmp3.cc ].mp3', cursor)
+
+    # Load directory data into the database
+    load_directory_data('C:/Users/owner/Downloads', cursor)
 
     # print the contents of the database
     cursor.execute("SELECT * FROM files")
-    rows = cursor.fetchall() # fetch all rows from the cursor
+    rows = cursor.fetchall()  # fetch all rows from the cursor
     for row in rows:
         print(row)
+
     # Close the cursor and database connection
     cursor.close()
-
-    # Close the database connection
     db.conn.close()
+
+#
+# Example usage
+# if __name__ == "__main__":
+#     # clear the database
+#     db = FileDatabase.FileDatabase('file_data.db')
+#     db.conn.execute("DROP TABLE IF EXISTS files")
+#     db.conn.commit()
+#     db.conn.close()
+#     # Connect to the database
+#     db = FileDatabase.FileDatabase('file_data.db')
+#     db.create_file_schema()
+
+#     cursor = db.conn.cursor()
+#     # Load file data into the database
+#     load_file_data('C:/Users/owner/VS code projects/File_Manager/FileDatabase.py', cursor)
+#     load_file_data('C:/Users/owner/Downloads/Stripsearch - Hey Kid (1982) [ ezmp3.cc ].mp3', cursor)
+
+#     # print the contents of the database
+#     cursor.execute("SELECT * FROM files")
+#     rows = cursor.fetchall() # fetch all rows from the cursor
+#     for row in rows:
+#         print(row)
+#     # Close the cursor and database connection
+#     cursor.close()
+
+#     # Close the database connection
+#     db.conn.close()
