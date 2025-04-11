@@ -63,13 +63,13 @@ class FileDatabase:
 
         
         # Assemble the final schema query string
+        # note the table is called "files"
         schema_query = f"""
             CREATE TABLE IF NOT EXISTS files (
                 {file_attributes},
                 {multimedia_attributes},
                 {image_attributes},
-                {audio_attributes},
-                {agent_attributes}
+                {audio_attributes}
             )
         """
         
@@ -106,9 +106,7 @@ class FileDatabase:
         else:
             print("No rows found in the table.")
 
-
-   
-        
+       
     def close(self):
         # Close the connection when done
         self.conn.close()
