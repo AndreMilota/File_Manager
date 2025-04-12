@@ -81,73 +81,117 @@ def get_media_metadata(file_path):
             ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            encoding='utf-8'  # Explicitly set encoding to avoid UnicodeDecodeError
+            encoding='utf-8'
         )
 
-        # Check for ffprobe failure
         if result.returncode != 0:
             print(f"ffprobe failed for {file_path}: {result.stderr}")
             return None
 
-        # Parse the JSON output
         metadata = json.loads(result.stdout)
 
-        # Initialize variables
-        duration = None
-        width = None
-        height = None
-        codec_name = None
-
-        # Extract duration and format info
-        if 'format' in metadata and 'duration' in metadata['format']:
-            try:
-                duration = float(metadata['format']['duration'])
-            except ValueError:
-                duration = None
-
-        # Find the first video stream
-        if 'streams' in metadata:
-            for stream in metadata['streams']:
-                if stream.get('codec_type') == 'video':
-                    width = stream.get('width')
-                    height = stream.get('height')
-                    codec_name = stream.get('codec_name')
-                    break
-
-        return {
-            'duration': duration,
-            'width': width,
-            'height': height,
-            'codec': codec_name
+        # Initialize fields with default None
+        data = {
+            'duration': None,
+            'bitrate': None,
+            'codec': None,
+            'framerate': None,
+            'image_format': None,
+            'resolution_width': None,
+            'resolution_height': None,
+            'sample_rate': None,
+            'channels': None
         }
 
-    except Exception as e:
-        print(f"Error reading media metadata for {file_path}: {e}")
-        return None
+        # Extract from 'format'
+        fmt = metadata.get('format', {})
+        if 'duration' in fmt:
+            try:
+                data['duration'] = float(fmt['duration'])
+            except ValueError:
+                pass
+        if 'bit_rate' in fmt:
+            try:
+                data['bitrate'] = int(fmt['bit_rate'])
+            except ValueError:
+                pass
+        if 'format_name' in fmt:
+            data['image_format'] = fmt['format_name']
+
+        # Extract from 'streams'
+        for stream in metadata.get('streams', []):
+            codec_type = stream.get('codec_type')
+
+            # Use first codec name found
+            if data['codec'] is None:
+                data['codec'] = stream.get('codec_name')
+
+            # For video streams
+            if codec_type == 'video':
+                if stream.get('width'):
+                    data['resolution_width'] = stream.get('width')
+                if stream.get('height'):
+                    data['resolution_height'] = stream.get('height')
+                # framerate (e.g. "30000/1001")
+                r_frame_rate = stream.get('r_frame_rate')
+                if r_frame_rate and r_frame_rate != '0/0':
+                    try:
+                        num, den = map(float, r_frame_rate.split('/'))
+                        data['framerate'] = num / den if den else None
+                    except Exception:
+                        pass
+
+            # For audio streams
+            elif codec_type == 'audio':
+                if stream.get('sample_rate'):
+                    try:
+                        data['sample_rate'] = int(stream['sample_rate'])
+                    except ValueError:
+                        pass
+                if stream.get('channels'):
+                    try:
+                        data['channels'] = int(stream['channels'])
+                    except ValueError:
+                        pass
+
+        return data
 
     except Exception as e:
-        print(f"Error extracting metadata for {file_path}: {e}")
+        print(f"Error reading media metadata from {file_path}: {e}")
         return None
+
+# Define a set of known media extensions
+MEDIA_EXTENSIONS = {'.mp3', '.mp4', '.wav', '.flac', '.mov', '.avi', '.mkv', '.webm', '.wmv', '.m4a', '.aac'}
 
 def get_all_file_data(file_path):
     # Extract file attributes
+    time_stamps = get_file_timestamps(file_path) or {}
 
-    # break the file path file name and extension into out of the file path
-    # this is done to make it easier to extract the file attributes
     path = file_path.replace('\\', '/')
-    extention = path.split('/')[-1].split('.')[-1]
+    extension = path.split('/')[-1].split('.')[-1]
     file_name = path.split('/')[-1].split('.')[0]   
     path = '/'.join(path.split('/')[:-1])
-    # put them into a dictionary to make it easier to extract the file attributes
-    identifier  = {
+
+    identifier = {
         'name': file_name,
-        'extension': extention,
+        'extension': extension,
         'full_path': path
     }
 
     file_attributes = get_file_attributes(file_path) or {}
-    multimedia_attributes = get_media_metadata(file_path) or {}
-    all_attributes = {**identifier, **file_attributes, **multimedia_attributes }
+
+    # Only attempt to get media metadata for valid media files
+    if extension in ['mp3', 'mp4', 'avi', 'jpg', 'png', 'gif']:  # add more media types as necessary
+        multimedia_attributes = get_media_metadata(file_path) or {}
+    else:
+        multimedia_attributes = {}
+
+    # get the size on disk
+    size_on_disk = get_size_on_disk(file_path) if os.path.isfile(file_path) else None
+    if size_on_disk is not None:
+        file_attributes['size_on_disk'] = size_on_disk
+
+    all_attributes = {**identifier, **file_attributes, **multimedia_attributes, **time_stamps}
 
     return all_attributes
 
@@ -168,12 +212,29 @@ def get_all_files_in_directory(root_dir):
             all_files.append(full_path)
     return all_files
 
+def test_get_media_metadata():
+    # Test the function with a sample file path
+    file_path = 'C:/Users/owner/Downloads/04 Cindytalk - Interruptum [Editions Mego].mp3'  # Replace with an actual file path
+    file_data = get_media_metadata(file_path)
+    print(f"File data for {file_path}:")
+    print(file_data)
+
+def print_all_atributes(file_path):
+    # Test the function with a sample file path
+    file_data = get_all_file_data(file_path)
+    i = 1
+    for key, value in file_data.items():
+        print(f"{i}: {key}: {value}")
+        i += 1
+
 if __name__ == "__main__":
+    # Test getting file data
+    print_all_atributes( 'C:/Users/owner/Downloads/04 Cindytalk - Interruptum [Editions Mego].mp3' )
     # test get_all_files_in_directory
  
-    root_dir = "C:/ffmpeg"
-    subdirs = get_all_files_in_directory(root_dir)
-    print("files:")
-    for subdir in subdirs:
-        print(subdir)
-    print("Total files:", len(subdirs))
+    # root_dir = "C:/ffmpeg"
+    # subdirs = get_all_files_in_directory(root_dir)
+    # print("files:")
+    # for subdir in subdirs:
+    #     print(subdir)
+    # print("Total files:", len(subdirs))
