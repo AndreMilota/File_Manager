@@ -70,7 +70,7 @@ if __name__ == "__main__":
             print(row)
 
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"An error occurred in the print: {e}")
         db.conn.rollback()
 
     finally:
